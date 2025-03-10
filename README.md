@@ -1,15 +1,11 @@
-# data-visualization
+# Workshop Visualization
 
-To install dependencies:
+Workshop data should be placed under the `data/workshops` folder. Registration data should be placed under the `data/registrations` folder.
 
-```bash
-bun install
+To run the project in Docker, run the following:
+
+```
+docker build . -t workshop-visualization && docker run workshop-visualization -p 5000:5000
 ```
 
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.2.2. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+See the dashboard at [http://localhost:5000](http://localhost:5000).
