@@ -9,9 +9,16 @@ workshop_data = pd.DataFrame()
 for file in glob.glob('data/workshops/*.csv'):
     workshop_data = pd.concat([workshop_data, pd.read_csv(file)])
 
+# filter out duplicate workshops
+workshop_data = workshop_data.drop_duplicates(subset='id')
+
 registration_data = pd.DataFrame()
 for file in glob.glob('data/registrations/*.csv'):
     registration_data = pd.concat([registration_data, pd.read_csv(file)])
+
+# filter out duplicate registrations. if there is a duplicate, keep the one with 1.0 attendance
+registration_data = registration_data.sort_values(by='attendance', ascending=False)
+registration_data = registration_data.drop_duplicates(subset='booking_id')
 
 workshop_data = workshop_data[workshop_data['start'] >= '2024-01-01']
 
@@ -39,12 +46,13 @@ tags = {
     'Containers': ['docker', 'kubernetes', 'container'],
     'Slurm': ['slurm'],
     'CLI': ['command line', 'cli', 'shell scripting'],
+    'HPC Core': ['11890719', '11890924', '12423016', '12423080', '12889799', '13832854', '13838434']
 }
 
 
 # add tags to data based on title and description
 workshop_data['tags'] = workshop_data['description'].str.split('Prerequisites:').str[0]
-workshop_data['tags'] = workshop_data['title'].str.lower() + ' ' + workshop_data['tags'].str.lower()
+workshop_data['tags'] = workshop_data['title'].str.lower() + ' ' + workshop_data['tags'].str.lower() + ' ' + workshop_data['id'].astype(str)
 workshop_data['tags'] = workshop_data['tags'].apply(lambda x: [tag for tag, keywords in tags.items() if any(keyword in x for keyword in keywords)])
 
 workshop_data['category'] = workshop_data['category'].apply(lambda x: [y['name'] for y in ast.literal_eval(x)])

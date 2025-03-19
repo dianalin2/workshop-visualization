@@ -3,7 +3,6 @@ const ctxs = [];
 const charts = {};
 const filters = {};
 const allWorkshopsDiv = document.getElementById('all-workshops');
-const tooltip = document.getElementById('tooltip');
 
 let currentCtxId = 'chart';
 
@@ -17,6 +16,18 @@ let currentFilters = {
 let workshopData = null;
 
 document.getElementById('refresh').addEventListener('click', refresh);
+
+Chart.Tooltip.positioners.bottom = function (elements, eventPosition) {
+    const pos = Chart.Tooltip.positioners.average(elements);
+
+    if (!pos)
+        return false;
+
+    return {
+        x: pos.x,
+        y: this.chart.chartArea.bottom - 10,
+    }
+}
 
 async function refresh() {
     allWorkshopsDiv.innerHTML = '';
@@ -67,26 +78,6 @@ async function refresh() {
         });
 
         allWorkshopsDiv.appendChild(r);
-
-        // function createTooltip(e) {
-        //     tooltip.querySelector('#title').textContent = row['title'];
-        //     tooltip.querySelector('#description').textContent = row['description'];
-        //     tooltip.querySelector('#attendees').textContent = parseInt(row['seats_taken']);
-        //     tooltip.querySelector('#capacity').textContent = parseInt(row['seats']);
-        //     tooltip.querySelector('#waitlist').textContent = row['wait_list'];
-        //     tooltip.querySelector('#date').textContent = `${new Date(row['start']).toLocaleString()} - ${new Date(row['end']).toLocaleTimeString()}`;
-        //     tooltip.style.display = 'block';
-        //     tooltip.style.left = `${e.clientX}px`;
-        //     tooltip.style.top = `${e.clientY}px`;
-        // }
-
-        // li.addEventListener('mouseover', createTooltip);
-
-        // li.addEventListener('mousemove', createTooltip);
-
-        // li.addEventListener('mouseout', () => {
-        //     tooltip.style.display = 'none';
-        // });
     });
 
     createChart(data, currentCtxId);
@@ -176,25 +167,25 @@ function createChart(data, ctxId) {
             datasets: [{
                 label: 'Attendees',
                 data: data.map(row => row['processed_attendance'] ?? row['attendance']),
+                backgroundColor: '#798db8',
                 datalabels: {
                     labels: {
                         title: null
                     }
                 },
-                borderWidth: 1,
             }, {
                 label: 'Registrations',
                 data: data.map(row => row['processed_seats_taken'] ?? row['seats_taken']),
+                backgroundColor: '#ff9080',
                 datalabels: {
                     labels: {
                         title: null
                     }
                 },
-                borderWidth: 1,
             }, {
                 label: 'Capacity',
                 data: data.map(row => row['processed_seats'] ?? row['seats']),
-                borderWidth: 1,
+                backgroundColor: '#ffdbdb'
             }]
         },
         plugins: [{
@@ -207,24 +198,27 @@ function createChart(data, ctxId) {
                 } = chart;
                 ctx.save();
                 data.forEach((row, i) => {
-                    switch (row['start'].getMonth()) {
+                    if (!row.start)
+                        return;
+
+                    switch (row.start.getMonth()) {
                         case 0:
                         case 1:
                         case 2:
                         case 3:
                         case 4:
-                            ctx.fillStyle = 'rgba(220, 255, 174, 0.5)';
+                            ctx.fillStyle = 'rgba(220, 255, 174, 0.75)';
                             break;
                         case 5:
                         case 6:
                         case 7:
-                            ctx.fillStyle = 'rgba(255, 250, 182, 0.5)';
+                            ctx.fillStyle = 'rgba(255, 255, 127, 0.65)';
                             break;
                         case 8:
                         case 9:
                         case 10:
                         case 11:
-                            ctx.fillStyle = 'rgba(255, 194, 128, 0.5)';
+                            ctx.fillStyle = 'rgba(255, 194, 128, 0.75)';
                     }
                     ctx.fillRect(
                         left + i * (width / data.length),
@@ -232,27 +226,48 @@ function createChart(data, ctxId) {
                         width / data.length,
                         height
                     );
+
+                    // add stripes for afternoon workshops
+                    if (row.start && row.start.getHours() >= 12) {
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                        for (let j = 0; j < 10; j++) {
+                            ctx.fillRect(
+                                left + i * (width / data.length),
+                                top + j * (height / 10),
+                                width / data.length,
+                                height / 20
+                            );
+                        }
+                    }
                 });
                 ctx.restore();
             }
         }, ChartDataLabels],
         options: {
+            interaction: {
+                mode: 'index'
+            },
             plugins: {
                 datalabels: {
                     anchor: 'end',
+                    rotation: -90,
+                    align: 'start',
                     formatter: (value, context) => {
                         const row = data[context.dataIndex];
-                        return `${parseInt(row['attendance'])}/${parseInt(row['seats_taken'])}/${row['seats']}`;
+                        return `${parseInt(row['attendance'])} / ${parseInt(row['seats_taken'])} / ${row['seats']}`;
                     }
                 },
                 title: {
                     display: true,
-                    text: 'Workshop Attendance',
+                    text: 'RC Workshops Spring 2024–Spring 2025',
                     font: {
                         size: 20
                     }
                 },
                 tooltip: {
+                    xAlign: 'center',
+                    yAlign: 'center',
+                    position: 'bottom',
                     callbacks: {
                         title: context => {
                             const row = data[context[0].dataIndex];
@@ -265,10 +280,6 @@ function createChart(data, ctxId) {
                         label: context => {
                             return null;
                         },
-                        // afterBody: context => {
-                        //     const row = data[context[0].dataIndex];
-                        //     return row['description'];
-                        // },
                         footer: context => {
                             if (currentFilters.categorize) {
                                 const row = data[context[0].dataIndex];
@@ -347,60 +358,12 @@ function loadCharts() {
 
         createChart(filter(workshopData, chart.filters), ctxId);
         filterTable(workshopData, chart.filters);
-
-        // charts[ctxId] = new Chart(ctx, {
-        //     id: ctxId,
-        //     type: 'bar',
-        //     data: chart.data,
-        //     options: chart.options,
-        // });
     }
 
     showChart(ctxs[0]);
     filterTable(workshopData, currentFilters);
     setFilterInputs(currentFilters);
 }
-
-// function parser(data, expression, lambda) {
-//     const operators = {
-//         'AND': {
-//             function: (a, b) => a && b,
-//             operands: 2
-//         },
-//         'OR': {
-//             function: (a, b) => a || b,
-//             operands: 2
-//         },
-//         'NOT': {
-//             function: a => !a,
-//             operands: 1
-//         }
-//     }
-//     const tokens = expression.match(/\(.*\)?|"[^"]+"|[^ ]+/g);
-
-//     const stack = [];
-//     tokens.forEach((token, i) => {
-//         if (token.startsWith('(')) {
-//             stack.push(parser(expression));
-//         } else if (operators.includes(token)) {
-//             const operator = operators[token];
-//             stack.push(operator);
-//         } else {
-//             if (stack[stack.length - 1] in operators) {
-//                 const operator = stack.pop();
-//                 stack.push(token);
-//                 const operands = [];
-
-//                 for (let i = 0; i < operator.operands; i++)
-//                     operands.push(stack.pop());
-
-//                 stack.push(operator.function(...operands.reverse()));
-//             }
-//         }
-//     });
-
-//     return stack;
-// }
 
 function filterOperators(data, attribute, lambda) {
     let filteredData = [];
@@ -481,8 +444,8 @@ function filter(data, filters) {
                 attendance: dataByTag[tag].reduce((acc, row) => acc + row['attendance'], 0),
                 seats_taken: dataByTag[tag].reduce((acc, row) => acc + row['seats_taken'], 0),
                 seats: dataByTag[tag].reduce((acc, row) => acc + row['seats'], 0),
-                start: dataByTag[tag][0].start,
-                end: dataByTag[tag][0].end,
+                start: null,
+                end: null,
             });
         }
 
@@ -502,18 +465,20 @@ function filter(data, filters) {
         });
     }
 
+    filteredData = filteredData.sort((a, b) => a['start'] > b['start'] ? 1 : -1);
 
     return filteredData;
 }
 
 function showStats(data) {
     const totalAttendees = data.reduce((acc, row) => acc + row['attendance'], 0);
+    const totalRegistrations = data.reduce((acc, row) => acc + row['seats_taken'], 0);
     const totalCapacity = data.reduce((acc, row) => acc + row['seats'], 0);
     document.getElementById('total-workshops').textContent = data.length;
     document.getElementById('total-attendees').textContent = totalAttendees;
     document.getElementById('total-capacity').textContent = totalCapacity;
-    document.getElementById('total-registrations').textContent = data.reduce((acc, row) => acc + row['seats_taken'], 0);
-    document.getElementById('total-attendees-percentage').textContent = `${(totalAttendees / totalCapacity * 100).toFixed(2)}%`;
+    document.getElementById('total-registrations').textContent = totalRegistrations;
+    document.getElementById('total-attendees-percentage').textContent = `${(totalAttendees / totalRegistrations * 100).toFixed(2)}%`;
 }
 
 function filterTable(data, filters) {
