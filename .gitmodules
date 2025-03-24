@@ -1,0 +1,3 @@
+[submodule "libcal"]
+	path = libcal
+	url = https://github.com/uvarc/libcal.git

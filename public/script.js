@@ -32,7 +32,7 @@ Chart.Tooltip.positioners.bottom = function (elements, eventPosition) {
 async function refresh() {
     allWorkshopsDiv.innerHTML = '';
 
-    const response = await fetch('/data');
+    const response = await fetch('/data/workshop');
     const data = await response.json();
 
     data.map(row => {

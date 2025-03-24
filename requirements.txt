@@ -1,0 +1,5 @@
+django_environ==0.11.2
+environ==1.0
+pandas==2.2.1
+Requests==2.31.0
+setuptools==68.2.2
