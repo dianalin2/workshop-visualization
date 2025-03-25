@@ -207,9 +207,9 @@ def departments():
 
     return q2.value_counts().to_json()
 
+workshop_data = pull_workshop_data()
+registration_data = pull_registration_data()
+workshop_data = process_workshop_data(workshop_data, registration_data)
 
 if __name__ == '__main__':
-    workshop_data = pull_workshop_data()
-    registration_data = pull_registration_data()
-    workshop_data = process_workshop_data(workshop_data, registration_data)
     app.run(debug=True)
