@@ -1,6 +1,7 @@
 from flask import Flask
 import pandas as pd
 import datetime
+import os
 from api import pull_workshop_data, pull_registration_data, pull_survey_data, process_workshop_data, process_survey_data, get_workshop_data, get_registration_data, get_survey_data, refresh
 
 app = Flask(__name__)
@@ -53,17 +54,28 @@ def departments():
 
     return q2.value_counts().to_json()
 
-last_refresh = datetime.datetime.now()
+os.makedirs('data', exist_ok=True)
+try:
+    with open('data/REFRESH') as f:
+        timestamp = f.read()
+        last_refresh = datetime.datetime.fromtimestamp(float(timestamp))
+except:
+    last_refresh = datetime.datetime.now()
+    with open('data/REFRESH', 'w') as f:
+        f.write(str(last_refresh.timestamp()))
+    refresh()
 
 @app.route('/refresh')
 def refresh_route():
     global last_refresh
     if (datetime.datetime.now() - last_refresh).days < 1:
         return { 'msg': 'Data was refreshed in the past 24 hours!', 'refreshed': False }
-
+    
     last_refresh = datetime.datetime.now()
-
+    with open('data/REFRESH', 'w') as f:
+        f.write(str(last_refresh.timestamp()))
     refresh()
+
     return { 'msg': 'Refreshed data!', 'refreshed': True }
 
 try:

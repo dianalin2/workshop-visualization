@@ -217,12 +217,9 @@ def process_survey_data(survey_data):
     return survey_data
 
 def refresh():
-    if not os.path.exists('data/workshops'):
-        os.makedirs('data/workshops')
-    if not os.path.exists('data/registrations'):
-        os.makedirs('data/registrations')
-    if not os.path.exists('data/surveys'):
-        os.makedirs('data/surveys')
+    os.makedirs('data/workshops', exist_ok=True)
+    os.makedirs('data/registrations', exist_ok=True)
+    os.makedirs('data/surveys', exist_ok=True)
 
     global workshop_data, survey_data
     workshop_data = process_workshop_data(pull_workshop_data(), pull_registration_data())
