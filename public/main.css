@@ -26,9 +26,24 @@ main {
     padding: 5px;
     width: 250px;
     display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
+#options-top {
+    display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    padding-top: 10px;
+}
+
+#options-bottom {
+    text-align: center;
+}
+
+#survey-link {
+    color: white;
 }
 
 #main-container {

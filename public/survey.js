@@ -114,3 +114,9 @@ async function refresh() {
 
 refresh();
 
+document.getElementById('refresh').addEventListener('click', async () => {
+    const res = await fetch('/refresh');
+
+    if ((await res.json()).refreshed)
+        refresh();
+});

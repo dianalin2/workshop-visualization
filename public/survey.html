@@ -9,11 +9,7 @@
     <style>
         * {
             box-sizing: border-box;
-        }
-
-        canvas {
-            /* width: 100%; */
-            /* height: 100vh !important; */
+            margin: 0;
         }
 
         table {
@@ -58,6 +54,31 @@
         td:last-child {
             padding-right: 20px;
         }
+
+        #bottom-right-options {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: fit-content;
+            padding: 10px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        button {
+            padding: 5px;
+            background-color: black;
+            color: whitesmoke;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+
+        button:hover {
+            background-color: #111;
+        }
     </style>
 </head>
 
@@ -71,6 +92,11 @@
         </div>
         <div>
             <canvas id="departments-chart"></canvas>
+        </div>
+
+        <div id="bottom-right-options">
+            <button id="refresh">Refresh Data</button>
+            <a id="workshop-link" href="/">&lt; Workshop Visualization</a>
         </div>
     </main>
 

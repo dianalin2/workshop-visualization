@@ -15,7 +15,12 @@ let currentFilters = {
 
 let workshopData = null;
 
-document.getElementById('refresh').addEventListener('click', refresh);
+document.getElementById('refresh').addEventListener('click', async () => {
+    const res = await fetch('/refresh');
+
+    if ((await res.json()).refreshed)
+        refresh();
+});
 
 Chart.Tooltip.positioners.bottom = function (elements, eventPosition) {
     const pos = Chart.Tooltip.positioners.average(elements);

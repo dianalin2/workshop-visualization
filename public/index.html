@@ -26,46 +26,49 @@
             <option value="0-12">Morning</option>
             <option value="12-24">Afternoon</option>
         </select> -->
-            <br>
+            <div id="options-top">
+                <input type="text" name="name" id="name" placeholder="Name">
 
-            <input type="text" name="name" id="name" placeholder="Name">
+                <input type="text" name="time" id="time" placeholder="Time (24h)">
 
-            <input type="text" name="time" id="time" placeholder="Time (24h)">
+                <input type="text" name="tags" id="tags" placeholder="Tags">
 
-            <input type="text" name="tags" id="tags" placeholder="Tags">
+                <div>
+                    <input type="date" name="date" id="start-date">
+                    -
+                    <input type="date" name="date" id="end-date">
+                </div>
 
-            <div>
-                <input type="date" name="date" id="start-date">
-                -
-                <input type="date" name="date" id="end-date">
+                <div>
+                    <label for="graph-type">Graph Type:</label>
+                    <select id="graph-type">
+                        <option value="count" selected>Count</option>
+                        <option value="percentage">Percentage</option>
+                    </select>
+                </div>
+
+
+                <div>
+                    <label for="categorize">Group by Category:</label>
+                    <input type="checkbox" name="categorize" id="categorize">
+                </div>
+
+                <div>
+                    <label for="drop-0">Drop N/A Attendance: </label>
+                    <input type="checkbox" name="drop-0" id="drop-0">
+                </div>
+
+                <div id="chart-select"></div>
+                <button id="refresh">Refresh Data</button>
+                <button id="make-new-chart">Make New Chart</button>
+
+                <div id="save-load">
+                    <button id="save">Save</button>
+                    <button id="load">Load</button>
+                </div>
             </div>
-
-            <div>
-                <label for="graph-type">Graph Type:</label>
-                <select id="graph-type">
-                    <option value="count" selected>Count</option>
-                    <option value="percentage">Percentage</option>
-                </select>
-            </div>
-
-
-            <div>
-                <label for="categorize">Group by Category:</label>
-                <input type="checkbox" name="categorize" id="categorize">
-            </div>
-
-            <div>
-                <label for="drop-0">Drop N/A Attendance: </label>
-                <input type="checkbox" name="drop-0" id="drop-0">
-            </div>
-
-            <div id="chart-select"></div>
-            <button id="refresh">Refresh Data</button>
-            <button id="make-new-chart">Make New Chart</button>
-
-            <div id="save-load">
-                <button id="save">Save</button>
-                <button id="load">Load</button>
+            <div id="options-bottom">
+                <a id="survey-link" href="/survey">Survey Visualization ></a>
             </div>
         </div>
     </main>
