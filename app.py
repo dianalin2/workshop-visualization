@@ -2,7 +2,7 @@ from flask import Flask
 import pandas as pd
 import datetime
 import os
-from api import pull_workshop_data, pull_registration_data, pull_survey_data, process_workshop_data, process_survey_data, get_workshop_data, get_registration_data, get_survey_data, refresh
+from api import process_workshop_data, process_survey_data, get_workshop_data, get_registration_data, get_survey_data, refresh
 
 app = Flask(__name__)
 
