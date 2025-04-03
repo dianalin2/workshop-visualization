@@ -2,8 +2,65 @@ from flask import Flask
 import pandas as pd
 import glob
 import ast
-from libcal.libcalapi import get_RCeventsforAllTimes, timeframe, rds_cal_id, general_rc_category_id, hsl_rc_cal_id, hsl_rc_category_id, unique_ordered, registration_fields, get_multiple_registrations, non_numeric
 import datetime
+import environ
+import requests
+import zipfile
+import io
+
+env = environ.Env(DEBUG=(bool, False))
+environ.Env.read_env()
+
+from libcal.libcalapi import get_RCeventsforAllTimes, timeframe, rds_cal_id, general_rc_category_id, hsl_rc_cal_id, hsl_rc_category_id, unique_ordered, registration_fields, get_multiple_registrations, non_numeric
+
+qualtrics_api_token = env("QUALTRICS_API_TOKEN")
+qualtrics_url_base = env("QUALTRICS_URL_BASE")
+qualtrics_survey_id = env("QUALTRICS_SURVEY_ID")
+
+
+def pull_survey_data():
+    # Step 1: Creating Data Export
+    base_url = f'{qualtrics_url_base}/API/v3/surveys/{qualtrics_survey_id}/export-responses/'
+    api_headers = {
+        'X-API-TOKEN': qualtrics_api_token,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+    response = requests.post(
+        base_url,
+        headers=api_headers,
+        data='{"format": "csv"}'
+    )
+    progress_id = response.json()["result"]["progressId"]
+
+    # Setting static parameters
+    progress_status = "inProgress"
+
+    # Step 2: Checking on Data Export Progress and waiting until export is ready
+    while progress_status != "complete" and progress_status != "failed":
+        response = requests.request("GET", base_url + progress_id, headers=api_headers)
+        res = response.json()["result"]
+        progress_status = res["status"]
+
+    #step 2.1: Check for error
+    if progress_status == "failed":
+        raise Exception("Export failed. Check your API token and survey ID.")
+
+    # Step 3: Downloading file
+    request_download = requests.request("GET", base_url + res['fileId'] + '/file', headers=api_headers, stream=True)
+
+    # Step 4: Unzipping the file
+    zipfile.ZipFile(io.BytesIO(request_download.content)).extractall("data/surveys/")
+
+    # Step 5: Reading the CSV file
+    csv_files = glob.glob("data/surveys/*.csv")
+
+    if len(csv_files) == 0:
+        raise Exception("No CSV file found in the unzipped folder.")
+
+    survey_data = pd.read_csv(csv_files[0])
+
+    return survey_data
 
 app = Flask(__name__)
 
@@ -40,6 +97,8 @@ def pull_registration_data(begin="2024-01-01"):
     non_numeric_df = non_numeric(combined_df)
     reg_df = pd.merge(reg_df, non_numeric_df, left_on="event_id", right_on="id", how="inner", copy=False)
 
+    reg_df.to_csv(f'data/registrations/{begin}-{datetime.datetime.now().strftime("%Y-%m-%d")}.csv')
+
     return reg_df
 
 def pull_workshop_data(begin="2024-01-01"):
@@ -65,10 +124,15 @@ def pull_workshop_data(begin="2024-01-01"):
     # filter out duplicate workshops
     combined_df = combined_df.drop_duplicates(subset='id')
 
+    combined_df.to_csv(f'data/workshops/{begin}-{datetime.datetime.now().strftime("%Y-%m-%d")}.csv')
+
     return combined_df
-        # combined_df = combined_df[["title","start","id","presenter"]]
-        # combined_df["start"] = combined_df["start"].str.split('T').str[0]
-        # combined_df["id"] = "https://cal.lib.virginia.edu/event/" + combined_df["id"].astype(str)
+
+def get_registration_data():
+    registration_data = pd.DataFrame()
+    for file in glob.glob('data/registrations/*.csv'):
+        registration_data= pd.concat([registration_data, pd.read_csv(file)])
+    return registration_data
 
 def get_workshop_data():
     workshop_data = pd.DataFrame()
@@ -78,12 +142,15 @@ def get_workshop_data():
     workshop_data = workshop_data.drop_duplicates(subset='id')
     return workshop_data
 
+def get_survey_data():
+    survey_data = pd.DataFrame()
+
+    for file in glob.glob('data/surveys/*.csv'):
+        survey_data = pd.concat([survey_data, pd.read_csv(file)])
+    
+    return survey_data
 
 def process_workshop_data(workshop_data, registration_data):
-    # registration_data = pd.DataFrame()
-    # for file in glob.glob('data/registrations/*.csv'):
-    #     registration_data = pd.concat([registration_data, pd.read_csv(file)])
-
     # filter out duplicate registrations. if there is a duplicate, keep the one with 1.0 attendance
     registration_data = registration_data.sort_values(by='attendance', ascending=False)
     registration_data = registration_data.drop_duplicates(subset='booking_id')
@@ -102,7 +169,7 @@ def process_workshop_data(workshop_data, registration_data):
     workshop_data = workshop_data.sort_values(by='start')
 
     # remove column for status and cal_type
-    workshop_data = workshop_data.drop(columns=['has_registration_opened', 'has_registration_closed', 'status', 'cal_type', 'online_join_url', 'online_join_password', 'registration', 'wait_list', 'online_meeting_id'])
+    workshop_data = workshop_data.drop(columns=['has_registration_opened', 'has_registration_closed', 'status', 'cal_type', 'online_join_url', 'online_join_password', 'registration', 'wait_list', 'online_meeting_id'], errors='ignore')
 
     # create tags manually
     tags = {
@@ -124,18 +191,14 @@ def process_workshop_data(workshop_data, registration_data):
     workshop_data['tags'] = workshop_data['title'].str.lower() + ' ' + workshop_data['tags'].str.lower() + ' ' + workshop_data['id'].astype(str)
     workshop_data['tags'] = workshop_data['tags'].apply(lambda x: [tag for tag, keywords in tags.items() if any(keyword in x for keyword in keywords)])
 
-    workshop_data['category'] = workshop_data['category'].apply(lambda x: [y['name'] for y in x])
+    workshop_data['category'] = workshop_data['category'].apply(lambda x: [y['name'] for y in ast.literal_eval(str(x))])
     workshop_data['category'] = workshop_data['category'].apply(lambda x: [y for y in x if y not in set(['Data Workshop > Research Computing Data Workshop', 'Data Workshop', 'Workshop'])])
 
     workshop_data['tags'] = list(workshop_data['tags'] + workshop_data['category'])
 
     return workshop_data
 
-def get_survey_data():
-    survey_data = pd.DataFrame()
-
-    for file in glob.glob('survey/*.csv'):
-        survey_data = pd.concat([survey_data, pd.read_csv(file)])
+def process_survey_data(survey_data):
 
     # drop first row
     survey_data = survey_data.iloc[1:]
@@ -155,9 +218,6 @@ def get_survey_data():
     survey_data = survey_data.drop(columns=['Q1A', 'Q2A'])
 
     return survey_data
-
-# workshop_data = get_workshop_data()
-survey_data = get_survey_data()
 
 app.static_folder = 'public'
 
@@ -207,9 +267,35 @@ def departments():
 
     return q2.value_counts().to_json()
 
-workshop_data = pull_workshop_data()
-registration_data = pull_registration_data()
-workshop_data = process_workshop_data(workshop_data, registration_data)
+last_refresh = datetime.datetime.now()
+
+def refresh():
+    global workshop_data, registration_data
+    workshop_data = pull_workshop_data()
+    registration_data = pull_registration_data()
+    workshop_data = process_workshop_data(workshop_data, registration_data)
+    return workshop_data, registration_data
+
+@app.route('/refresh')
+def refresh_route():
+    global last_refresh
+    # if (datetime.datetime.now() - last_refresh).days < 1:
+    #     return 'Data was refreshed in the past 24 hours!'
+
+    last_refresh = datetime.datetime.now()
+
+    refresh()
+    return 'Refreshed data!'
+    # return workshop_data, registration_data
+# survey_data = pull_survey_data()
+# survey_data = get_survey_data()
+
+# workshop_data, registration_data = refresh()
+workshop_data = process_workshop_data(get_workshop_data(), get_registration_data())
+survey_data = get_survey_data()
+
+if len(workshop_data) == 0:
+    refresh()
 
 if __name__ == '__main__':
     app.run(debug=True)
