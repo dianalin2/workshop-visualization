@@ -1,7 +1,5 @@
 # Workshop Visualization
 
-Workshop data is extracted from the libcal API.
-
 ## Deployment 
 
 1. Place a valid .env in the root of the repository. The .env should have the following variables:
