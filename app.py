@@ -1,7 +1,7 @@
 from flask import Flask
 import pandas as pd
 import datetime
-from api import pull_workshop_data, pull_registration_data, pull_survey_data, process_workshop_data, process_survey_data, get_workshop_data, get_registration_data, get_survey_data
+from api import pull_workshop_data, pull_registration_data, pull_survey_data, process_workshop_data, process_survey_data, get_workshop_data, get_registration_data, get_survey_data, refresh
 
 app = Flask(__name__)
 
@@ -55,12 +55,6 @@ def departments():
 
 last_refresh = datetime.datetime.now()
 
-def refresh():
-    global workshop_data, survey_data
-    workshop_data = process_workshop_data(pull_workshop_data(), pull_registration_data())
-    survey_data = pull_survey_data()
-    return workshop_data, survey_data
-
 @app.route('/refresh')
 def refresh_route():
     global last_refresh
@@ -72,10 +66,10 @@ def refresh_route():
     refresh()
     return { 'msg': 'Refreshed data!', 'refreshed': True }
 
-workshop_data = process_workshop_data(get_workshop_data(), get_registration_data())
-survey_data = process_survey_data(get_survey_data())
-
-if len(workshop_data) == 0:
+try:
+    workshop_data = process_workshop_data(get_workshop_data(), get_registration_data())
+    survey_data = process_survey_data(get_survey_data())
+except:
     refresh()
 
 if __name__ == '__main__':
