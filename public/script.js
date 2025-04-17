@@ -588,3 +588,7 @@ document.getElementById('save').addEventListener('click', saveCharts);
 document.getElementById('load').addEventListener('click', loadCharts);
 
 refresh();
+
+window.addEventListener('load', () => {
+    document.getElementById('refresh').click();
+});

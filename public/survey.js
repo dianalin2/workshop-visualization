@@ -4,6 +4,31 @@ function createChart(surveys, id, title, chartType) {
     const canvas = document.getElementById(id);
     const ctx = canvas.getContext('2d');
 
+    // replace school names with abbreviations
+    const schoolAbbreviations = {
+        'College and Graduate School of Arts & Sciences': 'The College',
+        'Frank Batten School of Leadership and Public Policy': 'Batten',
+        'Darden School of Business': 'Darden',
+        'School of Data Science': 'Data Science',
+    }
+
+    const abbreviate = (name) => {
+        if (name in schoolAbbreviations) {
+            return schoolAbbreviations[name];
+        }
+        return name;
+    }
+
+    for (const key in surveys) {
+        if (key === 'Other') {
+            continue;
+        }
+        if (key in schoolAbbreviations) {
+            surveys[abbreviate(key)] = surveys[key];
+            delete surveys[key];
+        }
+    }
+
     const data = {
         labels: Object.keys(surveys),
         datasets: [{
@@ -11,8 +36,6 @@ function createChart(surveys, id, title, chartType) {
             data: Object.values(surveys),
         }],
     };
-
-    console.log(data)
 
     const options = {
         responsive: true,
@@ -35,9 +58,25 @@ function createChart(surveys, id, title, chartType) {
                 }
             },
             labels: chartType === 'pie' ? {
-                render: 'label'
-            } : undefined
-        }
+                render: 'label',
+                fontSize: 20,
+            } : undefined,
+        }, scales: {
+            x: chartType == 'bar' ? {
+                stacked: true,
+                ticks: {
+                    autoSkip: false,
+                    maxRotation: 90,
+                    minRotation: 90,
+                    font: {
+                        size: 16
+                    }
+                }
+            } : undefined,
+            y: chartType == 'bar' ? {
+                beginAtZero: true
+            } : undefined,
+        },
     };
 
     const chart = new Chart(ctx, {
@@ -119,4 +158,8 @@ document.getElementById('refresh').addEventListener('click', async () => {
 
     if ((await res.json()).refreshed)
         refresh();
+});
+
+window.addEventListener('load', () => {
+    document.getElementById('refresh').click();
 });
